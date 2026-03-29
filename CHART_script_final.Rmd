@@ -1,0 +1,122 @@
+---
+title: "CHART exercise"
+author: "E Poarch"
+date: "2025-10-24"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: inline
+---
+**Download packages that need to be used for this script**
+```{r}
+#install.packages("tableone")
+#install.packages("Hmisc")
+library(readr)
+library(utils)
+library(dplyr)
+library(knitr)
+library(effectsize)
+library(tableone)
+library(Hmisc)
+library(labelled)
+```
+
+**Import csv file of data, quick overview to check for missingness and values of each variable**
+```{r}
+setwd("~/Desktop/CHART_assignment")
+dat <- read_csv("data_chart_assignment_2.csv")
+describe(dat)
+```
+
+**Label variables and specify variable type**
+```{r}
+unlab_df = dat %>%
+  mutate(
+    p_code=factor(p_code, labels = c("non-rural","rural")),
+    belong_ovr3 = ifelse(community_belong >= 3, 1, 0), #community belonging, scores of 3 or more
+    depressed_ovr10 = ifelse(depression_phq8_sum >= 10, 1, 0) #depression score, scores of 10 or more
+    )
+
+#label all variables
+df = unlab_df %>%
+  set_variable_labels(
+    p_code="Urban-Rural Postal Code",
+    belong_ovr3="Community belonging >=3",
+    depressed_ovr10="Depression score >=10",
+    depression_phq8_sum="Depression score")
+```
+
+**Select variables to be included in district reports for stakeholders**
+```{r}
+#variables for stratified table by urban/rural
+cat_vars <- c("p_code")
+cont_vars <- c("depression_phq8_sum")
+
+#variables for overall table including sample size and score cutoffs
+overall_vars <- c("belong_ovr3", "depressed_ovr10")
+```
+
+**Create folder for reports and sort by unique districts**
+```{r}
+#create folder for the reports for each district
+dir.create("CHART_reports_final", showWarnings = FALSE)
+#go through list of unique districts
+districts <- unique(df$district)
+```
+
+**Create report for each district, includes variables with overall numbers and table stratified by urban/rural**
+```{r}
+for (district_id in districts) {
+  #for loop of each district to create subset and district-specific reports
+  district_df <- df %>% filter(district == district_id)
+  total_n <- nrow(district_df)
+  
+  #overall table without stratification
+  tabovr <- CreateTableOne(vars = c(overall_vars),
+                        data = district_df,
+                        factorVars = overall_vars,
+                        addOverall = T)
+  #extract table as data frame (with variable labels)
+  tabovr_df <- as.data.frame(print(tabovr, quote = F, noSpaces = T, printToggle = F,showAllLevels=F,varLabels=T,test=T, smd = F))
+  
+  #create TableOne stratified by p_code
+  tabstrat <- CreateTableOne(vars = c(cat_vars, cont_vars),
+                        strata = "p_code",
+                        data = district_df,
+                        factorVars = cat_vars,
+                        addOverall = T)
+  #extract table as data frame (with SMD, p-value, variable labels)
+  tabstrat_df <- as.data.frame(print(tabstrat, quote = F, noSpaces = T, printToggle = F,showAllLevels=T,varLabels=T,test=T, smd = T))
+  
+  #create combined table with both overall and stratified
+  final_table <- bind_rows(tabovr_df, tabstrat_df, .id = NULL)
+  final_df <- as.data.frame(final_table)
+
+  #save as CSV
+  write.csv(final_df,
+            file = paste0("CHART_reports_final/district_report_", district_id, ".csv"),
+            row.names = TRUE)
+}
+```
+
+**Code for proportion instead of percentage for community belonging and depression (not used)**
+```{r}
+# prop_belong <- mean(district_df$community_belong >= 3, na.rm = TRUE)
+# prop_depressed <- mean(district_df$depression_phq8_sum >= 10, na.rm = TRUE)
+#   prop_dat <- data.frame(
+#     prop_vbl = c(
+#       "prop_belong_ovr3",
+#       "prop_depression_ovr10",
+#     ),
+#     prop_value = c(
+#       prop_belong,
+#       prop_depressed
+#     )
+#   )
+```
+
+**Zip the reports together**
+```{r}
+zip("CHART_reports_final.zip", files = list.files("CHART_reports_final", full.names = TRUE))
+```

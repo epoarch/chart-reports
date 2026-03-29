@@ -1,0 +1,8 @@
+"","Overall","level","non-rural","rural","p","test","SMD"
+"n...1","231",NA,NA,NA,NA,NA,NA
+"Community belonging >=3 = 1 (%)","215 (93.1)",NA,NA,NA,NA,NA,NA
+"Depression score >=10 = 1 (%)","159 (68.8)",NA,NA,NA,NA,NA,NA
+"n...4","231","","112","119","","",""
+"Urban-Rural Postal Code (%)","112 (48.5)","non-rural","112 (100.0)","0 (0.0)","<0.001","","NaN"
+"...6","119 (51.5)","rural","0 (0.0)","119 (100.0)","","",""
+"Depression score (mean (SD))","11.10 (2.79)","","11.19 (2.89)","11.01 (2.69)","0.627","","0.064"
